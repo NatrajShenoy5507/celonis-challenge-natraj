@@ -1,3 +1,10 @@
 .vscode/*
 node_modules/
 .env
+playwright/.env
+playwright/auth/.auth/
+playwright/test-results/
+playwright/playwright-report/
+playwright/allure-results/
+playwright/allure-report/
+.playwright-mcp/

@@ -1,0 +1,24 @@
+{
+  "name": "celonis-playwright-framework",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --project=chromium tests/ui",
+    "test:api": "playwright test --project=api tests/api",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:list": "playwright test --list",
+    "typecheck": "tsc --noEmit",
+    "report:html": "playwright show-report",
+    "report:allure": "allure generate allure-results --clean -o allure-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^22.19.0",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^3.4.2",
+    "dotenv": "^16.6.1",
+    "typescript": "^5.9.3"
+  }
+}
