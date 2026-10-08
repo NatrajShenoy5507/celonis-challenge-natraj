@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "reconcile": "node reconciliation/src/reconcile.js"
+    "reconcile": "node reconciliation/src/reconcile.js",
+    "report": "node reconciliation/src/generate-defect-report.js"
   },
   "dependencies": {
     "csv-parse": "^7.0.3"

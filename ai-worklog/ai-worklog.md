@@ -61,3 +61,12 @@
 - Replaced verbose console output with a summary of OMS order count, Analytics event count, total findings, unique affected CaseIds, and the output file path.
 - **AI contribution:** ChatGPT assisted with implementing the reporting and output-file behavior without changing validation rules.
 - **Verification:** Ran `npm run reconcile`. It reported 20 OMS orders, 67 Analytics events, 17 findings, and 11 unique affected CaseIds. Confirmed the generated JSON contains sequential IDs from `DATA-001` to `DATA-017`.
+
+### Reviewer-facing defect report generation
+
+- Added `reconciliation/src/generate-defect-report.js` and the `npm run report` command to generate the root-level `DEFECT_REPORT.md` from `reconciliation/output/defects.json`.
+- Grouped raw findings only by the combination of `caseId` and `rule`, assigning sequential reviewer-facing `DEFECT-###` IDs while retaining the associated raw `DATA-###` IDs.
+- Included expected and actual evidence, category, severity, business impact, detection method, expected-behavior notes, and the DeliveredDate semantic-equivalence assumption.
+- Preserved `defects.json` as the source of truth; the generator reads it and does not modify it.
+- **AI contribution:** ChatGPT assisted with the straightforward Node.js report generator, npm script, and concise human-readable report.
+- **Verification:** Ran `npm run report`; it grouped 17 raw findings into 14 defects. Confirmed all raw finding IDs are present, the four `ORD-1008` currency findings are grouped, distinct rules for the same case remain separate, and both required report sections are generated.
