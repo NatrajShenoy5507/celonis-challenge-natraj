@@ -1,6 +1,8 @@
 name: AI quality analysis
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
     inputs:
       run_live:
@@ -13,8 +15,8 @@ permissions:
   contents: read
 
 jobs:
-  deterministic-and-ai:
-    name: Deterministic findings and optional Gemini analysis
+  offline-validation:
+    name: Deterministic and offline AI guardrail tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -33,32 +35,32 @@ jobs:
       - name: Generate deterministic findings
         run: npm run reconcile
 
-      - name: Validate findings are ready for AI
-        shell: node {0}
-        run: |
-          const fs = require("node:fs");
-          const path = "reconciliation/output/defects.json";
-          if (!fs.existsSync(path)) {
-            throw new Error(`Expected deterministic findings were not generated: ${path}`);
-          }
-          const findings = JSON.parse(fs.readFileSync(path, "utf8"));
-          if (!Array.isArray(findings) || !findings.every((finding) =>
-            typeof finding.id === "string" &&
-            typeof finding.caseId === "string" &&
-            typeof finding.category === "string" &&
-            typeof finding.severity === "string"
-          )) {
-            throw new Error("Deterministic findings do not match the expected array schema.");
-          }
-          console.log(`Deterministic findings are ready (${findings.length} finding(s)).`);
+      - name: Run mocked AI guardrail tests
+        run: node --test ai/test/anomaly-explainer.test.js
 
-      - name: Check offline AI guardrail test availability
-        shell: bash
-        run: |
-          echo "::notice::No runnable offline/mock AI guardrail test command is defined in the repository; no substitute test command will be invented."
+  live-analysis:
+    name: Optional live Gemini analysis
+    needs: offline-validation
+    if: github.event_name == 'workflow_dispatch' && inputs.run_live == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      - name: Verify live Gemini secret is configured when requested
-        if: inputs.run_live
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate deterministic findings
+        run: npm run reconcile
+
+      - name: Verify live Gemini secret is configured
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         shell: bash
@@ -70,27 +72,25 @@ jobs:
           echo "GEMINI_API_KEY is configured."
 
       - name: Run live Gemini analysis
-        if: inputs.run_live
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: npm run ai:explain
 
-      - name: Verify successful run wrote a valid analysis
-        if: inputs.run_live
+      - name: Verify validated analysis covers deterministic findings
         shell: node {0}
         run: |
           const fs = require("node:fs");
           const findings = JSON.parse(fs.readFileSync("reconciliation/output/defects.json", "utf8"));
           const outputPath = "ai/output/ai-analysis.json";
           if (!fs.existsSync(outputPath)) {
-            throw new Error("Gemini command exited without writing the validated analysis.");
+            throw new Error("Gemini command exited without writing validated analysis.");
           }
           const analysis = JSON.parse(fs.readFileSync(outputPath, "utf8"));
           if (
             typeof analysis.overallSummary !== "string" ||
             !Array.isArray(analysis.caseAnalyses)
           ) {
-            throw new Error("AI analysis does not match the validated response structure.");
+            throw new Error("AI analysis does not match the persisted validated structure.");
           }
           const expected = new Set(findings.map((finding) => finding.id));
           const returned = analysis.caseAnalyses.flatMap((item) => item.findingIds || []);
@@ -103,6 +103,6 @@ jobs:
           }
           console.log(`Validated output structure and coverage for ${returned.length} finding(s).`);
 
-      - name: Keep AI output off artifacts by default
-        if: always() && inputs.run_live
-        run: echo "::notice::AI analysis is not printed or uploaded because it contains case-level business evidence; run the existing command in a trusted local environment to inspect the generated file."
+      - name: Keep AI output off artifacts
+        if: always()
+        run: echo "::notice::AI analysis is not printed or uploaded because it contains case-level business evidence."

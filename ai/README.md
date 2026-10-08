@@ -46,6 +46,12 @@ The explainer reads `defects.json`; it does not read the raw CSV files. Determin
 
 The explainer expects the findings JSON at `reconciliation/output/defects.json`. Do not use AI explanations in place of generating or reviewing these deterministic findings.
 
+Run the offline mocked-response guardrail tests without a Gemini key:
+
+```powershell
+node --test ai/test/anomaly-explainer.test.js
+```
+
 ## 4. How to Run
 
 Run these commands from the repository root:
@@ -64,7 +70,7 @@ The exact commands are defined in [`package.json`](../package.json). A live AI r
 - Deterministic reconciliation remains authoritative; Gemini cannot decide pass/fail, add or remove findings, or change deterministic severity.
 - Every case analysis must map to an existing `caseId` and include exactly the deterministic finding IDs for that case. Unknown, missing, duplicated, or misassigned IDs are rejected.
 - OMS expected values and supplied defect evidence are treated as trusted facts. Validation rejects unsupported claims that OMS/source data is wrong or needs correction, as well as unsupported business behavior and severity reinterpretation.
-- Root causes are returned as `rootCauseMechanisms`, not free-text hypotheses. Allowed mechanisms are derived from finding categories for each case; unknown or disallowed values and duplicates are rejected. Cases containing only `SOURCE_DATA` findings have no allowed integration root-cause mechanisms. Mixed-category cases use the allowed mechanisms associated with their other finding categories.
+- Root causes are returned as `rootCauseMechanisms`, not free-text hypotheses. The model-facing schema is keyed by exact case IDs and uses a separate allowed-mechanism enum for each case with allowed options; the validated persisted artifact keeps its existing case-analysis array format. For a case with no allowed mechanisms, the prompt/schema description requires an empty array and server validation rejects any returned mechanism (JSON Schema enums must be non-empty). Cases containing only `SOURCE_DATA` findings have no allowed integration root-cause mechanisms. Mixed-category cases use the allowed mechanisms associated with their other finding categories.
 - Structural and semantic validation rejects invalid output. The script allows at most two Gemini attempts (one corrective retry after a validation failure).
 - The explainer writes `ai/output/ai-analysis.json` only after the complete response passes validation. A failed response is not saved as a new result.
 
@@ -91,7 +97,7 @@ The deterministic input is grouped by case and includes the supplied findings an
 }
 ```
 
-The response schema contains one top-level summary and case analyses. A sanitized example:
+The persisted output contains one top-level summary and case analyses. A sanitized example:
 
 ```json
 {
