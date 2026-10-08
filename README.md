@@ -181,17 +181,41 @@ Then fill in only the required local values: `GEMINI_API_KEY` in root `.env` for
 
 For Part C, run reconciliation before report generation. For Part E, ensure reconciliation has generated findings first. For Part D, start the mock in one terminal and run k6 commands from `performance/` in another. Exact component setup and run instructions are in [`playwright/README.md`](./playwright/README.md) and [`performance/README.md`](./performance/README.md).
 
-## GitHub Actions
+## Continuous Integration — GitHub Actions
 
-Three independent workflows are available under the **Actions** tab:
+Three independent workflows are defined in [`.github/workflows/`](./.github/workflows/). They use read-only repository permissions.
 
-| Workflow | Triggers | What it runs and stores |
+| Workflow file | Triggers and manual execution | Purpose, checks, secrets, and results |
 |---|---|---|
-| **Playwright tests** | Push, pull request, or manual dispatch | TypeScript checks and read-only API tests run without secrets. Authenticated UI tests run only on pushes and manual dispatches when both `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` repository secrets are configured; they are explicitly skipped on all pull requests and when either secret is missing. HTML reports and screenshot failure evidence are uploaded as run artifacts; authentication state and trace archives are not uploaded. |
-| **Reconciliation tests** | Push, pull request, or manual dispatch | Runs `npm run reconcile` and `npm run report`, then validates the generated finding IDs and report consistency. The seeded findings are expected. `defects.json` and `DEFECT_REPORT.md` are uploaded as run artifacts. |
-| **AI quality analysis** | Push, pull request, or manual dispatch | Pushes and pull requests run deterministic reconciliation and offline mocked-response guardrail tests without secrets. Manual dispatch also runs those checks; optionally enable **Run live Gemini analysis**, which requires the `GEMINI_API_KEY` repository secret. Validated AI output is not uploaded because it contains case-level evidence. |
+| [`playwright-tests.yml`](./.github/workflows/playwright-tests.yml) | Push, pull request, and `workflow_dispatch`; **Run workflow** is supported. | Runs the TypeScript check and read-only API tests without repository credentials. Authenticated UI tests run only on pushes or manual dispatches when both `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` secrets are configured; they are skipped on every pull request and if either secret is missing. Run artifacts, retained for 7 days, are named `playwright-api-report` and (when the authenticated UI job runs) `playwright-authenticated-ui-report`; they contain the Playwright HTML report and, for the UI run, failure screenshots. Authentication state and trace archives are excluded. |
+| [`reconciliation-tests.yml`](./.github/workflows/reconciliation-tests.yml) | Push, pull request, and `workflow_dispatch`; **Run workflow** is supported. | Runs `npm run reconcile`, `npm run report`, and checks the generated JSON finding IDs, required fields, and report grouping. It needs no secrets. The `reconciliation-defects-and-report` artifact contains `reconciliation/output/defects.json` and `DEFECT_REPORT.md` when generated. |
+| [`ai-quality.yml`](./.github/workflows/ai-quality.yml) | Push, pull request, and `workflow_dispatch`; **Run workflow** is supported. | The `offline-validation` job runs reconciliation and mocked AI guardrail tests without secrets. A live Gemini request runs only on manual dispatch when **Run live Gemini analysis** is selected; it requires `GEMINI_API_KEY`. The live analysis is not uploaded as an artifact because it contains case-level evidence. Review the run's job logs and status; the AI workflow does not publish its generated analysis file. |
 
-To configure secrets, add the Playwright credentials and, if using live AI analysis, `GEMINI_API_KEY` in the repository's **Settings → Secrets and variables → Actions**. To run a workflow manually, open **Actions**, select its workflow, choose **Run workflow**, and confirm the branch; for AI analysis, leave the live option disabled unless the Gemini secret is configured. Download available reports from the run's **Artifacts** section. Workflows use read-only repository permissions, and a successful skipped UI job does not mean authenticated UI tests ran.
+### Repository secrets
+
+Users with repository administration permissions can configure the secrets used by these workflows at **GitHub Repository → Settings → Secrets and variables → Actions → Repository secrets**:
+
+- `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` — credentials for authenticated Playwright UI tests. These tests do not run on untrusted pull requests.
+- `GEMINI_API_KEY` — required only when explicitly requesting live Gemini analysis in a manual AI Quality workflow run. Offline AI guardrail tests do not need it.
+
+Enter secret values only in GitHub's secret form; never add credentials or keys to this README, workflow files, or committed environment files. Workflows that need secrets do not expose them to untrusted pull-request code; accordingly, authenticated Playwright functionality is skipped on pull requests, while AI offline checks remain available.
+
+### Viewing or starting a workflow
+
+1. Open the GitHub repository and select **Actions**.
+2. Select **Playwright tests**, **Reconciliation tests**, or **AI quality analysis** to view that workflow's previous executions and job results.
+3. For a manual run, select **Run workflow**, choose the branch, and confirm. This option is available only to users with the required repository permissions. For AI Quality, select the live-analysis input only when `GEMINI_API_KEY` is configured and a live API call is intended.
+4. Open a completed run to inspect its job logs and status. Where an artifact was uploaded, download it from the run's **Artifacts** section.
+
+Access to view runs, trigger manual workflows, or download artifacts depends on the repository's visibility and the viewer's permissions. The repository also supports local execution: use the [Playwright commands](./playwright/README.md), root `npm run reconcile` and `npm run report` commands, and [AI instructions](./ai/README.md); local performance setup is in [`performance/README.md`](./performance/README.md).
+
+### Interpreting CI results
+
+- **Reconciliation execution:** A successful reconciliation workflow means the existing command ran and its generated findings/report passed the workflow's structural and integrity checks. The supplied CSVs intentionally contain defects; detecting them is expected and does not by itself mean CI or infrastructure failed.
+- **Playwright execution:** A successful Playwright test job means the tests that actually ran passed. If authenticated UI tests were skipped (for example, on a pull request or when secrets are unavailable), a green workflow is not evidence that those UI tests ran.
+- **Live Gemini analysis:** The AI workflow's offline guardrail checks can pass independently of Gemini. A manually requested live analysis may fail when Gemini returns unsupported content or the response fails deterministic validation; such output is rejected, no new analysis is saved, and the job should fail. This fail-closed result is intentional and must not be hidden to make the workflow green.
+
+Workflow definitions describe configured behavior, not proof of successful executions. Review the specific run's event, job status, logs, and artifacts before reporting results.
 
 ## Results and Reports
 
@@ -222,4 +246,5 @@ Do not treat absent or ignored result artifacts as execution evidence; rerun the
 
 - Add coverage from risk-prioritized scenarios and authorized integration contracts when available.
 - For an authorized performance environment, add measured ingestion lag, server/resource telemetry, and batch reconciliation.
-- Extend CI report publishing and authorized integration coverage as repository hosting and credentials permit.
+- Add Allure results/report artifacts to CI if that report format is needed; current Playwright artifacts provide HTML reports and failure screenshots, not an Allure report.
+- Add safe, reviewed AI-output publishing only if a suitable data-handling review permits it; the live AI workflow currently does not upload case-level analysis.
