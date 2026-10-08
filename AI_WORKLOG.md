@@ -1,4 +1,4 @@
-# AI Work Log
+# AI Work Log — Celonis Quality Challenge
 
 ## Work completed so far
 
@@ -135,3 +135,43 @@
 5. Completed the Part E Gemini integration with structural and semantic guardrails so AI output cannot replace deterministic validation. A live response that described `ORD-1010` as “critical” despite there being no deterministic CRITICAL finding was rejected. The latest implementation uses case-category-specific root-cause mechanism enums and one corrective retry while preserving fail-closed validation; `ai/output/ai-analysis.json` is updated only when a complete response passes all checks.
 6. Created `STRATEGY.md` from all 20 workbook scenarios as the Part A test strategy, aligned with `PROJECT_IDEA.md`; preserved the manually assigned priorities and left the Excel source unchanged.
 7. Set up an isolated TypeScript Playwright framework under `playwright/`, inspected the supplied shop and its linked documented API, and aligned it with the revised skeleton: typed `.env` credentials, validated 12-hour local session cache, authenticated fixtures, locator-free UI specs, separate API coverage, and Allure reporting. The six-test suite and TypeScript check pass; CI captures failure video, while local video is disabled because policy blocks FFmpeg.
+
+## Part D — Local k6 performance framework
+
+- **AI contribution:** Copilot assisted with translating `K6_FRAMEWORK_BUILD_INSTRUCTIONS.md` into an isolated `performance/` project: a localhost-only mock sync API, validated `.env` configuration, baseline/load and optional stress/soak k6 profiles, a safe runner, pre/post comparison, tests, and the Part D runbooks.
+- **Accepted:** OMS-to-Analytics performance can only be measured against an authorized real environment; this repository has none. The executable mock therefore binds to loopback, bounds its in-memory order store, validates fictional payloads, returns HTTP 202 for acceptance, and exposes asynchronous processing separately. The runner blocks remote targets unless explicitly authorized and never includes tokens in saved metadata.
+- **Corrected or constrained:** The initial verification pass caught a JavaScript template-literal syntax error in the comparison report; it was fixed before continuing. The performance documentation distinguishes `ramping-vus` concurrency from request arrival rate and treats 202 acceptance separately from completed ingestion. Thresholds are labeled illustrative, not official SLIs/SLOs. No result fixtures are saved or presented as measurements.
+- **Verification:** Ran `npm test` in `performance/`; all 4 Node tests passed, covering mock health/accept/reject/duplicate/capacity/status/metrics behavior, invalid configuration, remote-target blocking, and comparison calculations with in-memory test fixtures. `node --check` passed for the Node scripts and k6 script syntax. Confirmed `npm run perf:baseline:pre` fails clearly because the k6 CLI is not installed. No k6 workload, remote target, public website, real OMS, or Celonis endpoint was tested. Actual k6 summaries and pre/post comparisons remain unverified until k6 is installed and runs are performed against the local mock.
+
+## Repository skills for Playwright and k6
+
+- Added repository-scoped Copilot Agent Skills under `.github/skills/` to make recurring Playwright and k6 workflows available through explicit, on-demand commands rather than relying only on ad hoc chat prompts.
+- `playwright-test-generation` covers targeted Playwright test creation, debugging, execution, and review. It directs Copilot to inspect the existing TypeScript framework, use Playwright MCP when inspecting browser behavior, preserve locator ownership and authentication/data rules, run relevant verification, and record material work in this log. It explicitly does not rebuild the framework or run automatically when Playwright files are merely mentioned.
+- `k6-performance-review` covers user-triggered baseline/load performance runs and comparisons. It uses the existing configured workload and runner, preserves actual run evidence, prevents unapproved remote/public-site tests, does not run stress/soak implicitly, distinguishes mock acceptance from real Analytics ingestion, and records actual commands, results, and limitations here.
+- **AI contribution:** Copilot helped organize the project's repeatable Playwright and k6 workflows as repository skills so future work can follow consistent safety, implementation, verification, and audit-trail steps.
+- **Verification and repository-state note:** Reviewed both skill definitions and the current worktree; no tests were run for this documentation-only update. The root-level `K6_FRAMEWORK_BUILD_INSTRUCTIONS.md` and `PLAYWRIGHT_FRAMEWORK_SKELETON.md` are still present in the inspected worktree, and the skill definitions still refer to legacy framework material. Therefore, the migration is represented as the new skills-based workflow, but physical removal or full consolidation of those older documents was not confirmed in this update.
+
+### Part D strategy refinement
+
+- Updated the existing root `PERFORMANCE.md` with the human-provided practical approach: evidence-based endpoint/workload selection, baseline-to-peak ramp-up with an explicitly proposed (not universal) 30% headroom scenario, recovery observation, client-side versus infrastructure monitoring, evidence-led error investigation, and end-to-end OMS-to-Analytics reconciliation.
+- Preserved the local mock scope, existing baseline/load/stress/soak profile descriptions, pre/post comparison guidance, configuration and illustrative thresholds, limitations, and AI-first approach. No configured workload values, thresholds, executable code, or performance measurements were changed or added.
+- **Verification:** Reviewed the existing performance runbook and `.env.example` to confirm the documentation continues to describe the current commands/settings and does not imply arrival-rate execution, infrastructure telemetry, or real downstream ingestion is implemented. This documentation-only change does not require tests.
+
+## Main README project overview and setup
+
+- Updated the root `README.md` from the repository's actual implementation to provide an interviewer-facing overview of the OMS-to-Analytics challenge and Parts A-E. Added an architecture diagram that distinguishes CSV reconciliation from representative demo-site Playwright testing and the localhost-only k6 mock.
+- Documented the existing Part A scenario count, Part B Playwright capabilities and commands, Part C rules and observed generated finding/defect counts, Part D profiles/configuration/limitations, Part E Gemini guardrails and invocation, AI-assisted workflow, generated artifact locations, assumptions, and realistic future improvements.
+- Expanded prerequisites and setup with the actual root, Playwright, and performance package scripts; browser, demo credentials, k6 CLI, Gemini key, and optional Java requirements; and safe PowerShell `.env` creation that does not overwrite existing local files. No secret values were included.
+- **Verification:** Inspected the referenced package scripts, configs, source files, documented outputs, and generated reconciliation/AI JSON. Confirmed all 24 relative Markdown links resolve and all 18 documented npm script names exist in the relevant package manifests; scanned the README for secret-like values and found none. `git diff --check` passed. No tests were run because this was documentation-only.
+
+## Work-log location update
+
+- Moved this log from `ai-worklog/ai-worklog.md` to the repository root as `AI_WORKLOG.md`, matching the project documentation and skill references. Updated the README links and artifact listing to the new path.
+- **Verification:** Confirmed the old file path no longer exists, the root file exists, and all README relative links resolve. No active references to the former location remain; it is mentioned here only to record the move.
+
+## Part E artifact documentation and TypeScript configuration
+
+- Created `ai/README.md` from the implemented Gemini explainer, reconciliation findings, root package scripts, environment template, existing AI output schema, and project work log. It documents the deterministic-to-AI flow, guarded output, safe setup and exact run commands, the current response shape, and human-review/production limitations.
+- Clarified that SOURCE_DATA-only cases have no allowed integration root-cause mechanisms, while mixed-category cases can use mechanisms allowed by their other finding categories. Added a direct Part E documentation link in the root `README.md`.
+- Corrected the Playwright TypeScript configuration from deprecated `moduleResolution: "Node"` to matching `Node16` module and resolution modes in response to the TypeScript deprecation warning.
+- **Verification:** Confirmed all relative Markdown links in the root and Part E READMEs resolve; reviewed the docs against actual guardrail code, package scripts, environment template, and JSON artifact. Playwright typecheck passed with the updated config, and VS Code reported no problems. No Gemini request or test suite was run for these documentation/configuration updates.
