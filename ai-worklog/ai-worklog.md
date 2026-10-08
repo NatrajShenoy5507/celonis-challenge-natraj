@@ -101,6 +101,16 @@
 - Constrained enums are more reliable than unrestricted root-cause prose because the validator can directly compare each mechanism with that case's allowed list, rather than trying to infer whether free text questions trusted OMS evidence.
 - Regenerated `ai/output/ai-analysis.json` using the current mechanism-only response schema. Verified offline that all 17 deterministic findings across 11 cases are represented exactly once, all mechanisms are allowed for their case categories, and SOURCE_DATA-only cases have no mechanisms.
 
+## Part A — Test strategy and scenario documentation
+
+- Created the correctly named root-level `STRATEGY.md` as the Part A deliverable specified by `PROJECT_IDEA.md`.
+- Read `data/Test cases.xlsx` directly and preserved all 20 workbook scenarios in the six-column scenario table. All scenario IDs were already present and unique (`OMS-01` through `OMS-20`); no scenario was removed or merged.
+- Added the requested objective, three test layers, risk prioritization, relevant techniques, measurable test-oracle guidance, a separate OMS status-to-Analytics mapping table, one-hour risk focus, assumptions/limitations, and execution notes.
+- Cleaned spelling and grammar without materially changing scenario intent. Reclassified the workbook's Database-labeled missing-field and sync-failure cases as API / Integration based on what they test. Preserved assigned priorities; OMS-20 remains unassigned because its workbook priority is blank.
+- Documented the derived assumption that OMS `DeliveredDate` matching Analytics `Order Delivered.Timestamp` is based on semantic equivalence, not an explicitly guaranteed contract.
+- **AI contribution:** ChatGPT assisted with reading and organizing the workbook's scenarios into a concise, interview-defensible strategy aligned with the project context.
+- **Verification:** Confirmed the Markdown scenario table has 20 rows, 20 unique IDs, and six columns. The Excel workbook was read only and not modified.
+
 ## Journey so far
 
 1. Reviewed the challenge brief and translated the OMS-to-Analytics business requirement into a project plan and IDE context document.
@@ -108,3 +118,4 @@
 3. Persisted the deterministic results to `reconciliation/output/defects.json` and generated a reviewer-facing `DEFECT_REPORT.md` from those findings without changing the raw findings.
 4. Started Part E with a findings-only summary, then connected Gemini to the deterministic output. Gemini receives findings and derived metadata—not the source CSVs—and is intended only to explain confirmed findings and offer clearly labeled hypotheses and investigation guidance.
 5. Completed the Part E Gemini integration with structural and semantic guardrails so AI output cannot replace deterministic validation. A live response that described `ORD-1010` as “critical” despite there being no deterministic CRITICAL finding was rejected. The latest implementation uses case-category-specific root-cause mechanism enums and one corrective retry while preserving fail-closed validation; `ai/output/ai-analysis.json` is updated only when a complete response passes all checks.
+6. Created `STRATEGY.md` from all 20 workbook scenarios as the Part A test strategy, aligned with `PROJECT_IDEA.md`; preserved the manually assigned priorities and left the Excel source unchanged.
