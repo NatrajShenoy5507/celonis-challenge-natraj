@@ -225,7 +225,7 @@
     "severity": "HIGH",
     "description": "Analytics timestamp is after the validation time for Order Shipped.",
     "activity": "Order Shipped",
-    "expected": "Timestamp less than or equal to 2026-10-08T10:12:03.638Z",
+    "expected": "Timestamp less than or equal to 2026-10-08T10:24:39.310Z",
     "actual": "2027-08-18T09:00:00Z",
     "id": "DATA-016"
   },
