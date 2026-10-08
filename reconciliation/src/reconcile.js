@@ -30,9 +30,6 @@ if (Number.isNaN(validationAsOf.getTime())) {
   throw new Error("VALIDATION_AS_OF must be a valid date and time.");
 }
 
-console.log(`Total OMS orders: ${orders.length}`);
-console.log(`Total Analytics events: ${events.length}`);
-
 const findings = [];
 const expectedFlowsByStatus = {
   Cart: [[]],
@@ -278,9 +275,6 @@ for (const order of orders) {
     }
   }
 
-  console.log(
-    `${order.OrderId} | ${order.Status} | ${matchingEvents.length} analytics events`,
-  );
 }
 
 const orderIds = new Set(orders.map((order) => order.OrderId));
@@ -300,5 +294,19 @@ for (const caseId of caseIds) {
   }
 }
 
-console.log("\nFindings:");
-console.log(JSON.stringify(findings, null, 2));
+findings.forEach((finding, index) => {
+  finding.id = `DATA-${String(index + 1).padStart(3, "0")}`;
+});
+
+const outputFile = path.resolve(__dirname, "../output/defects.json");
+fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+fs.writeFileSync(outputFile, `${JSON.stringify(findings, null, 2)}\n`);
+
+const affectedCaseIds = new Set(findings.map((finding) => finding.caseId));
+const projectRoot = path.resolve(__dirname, "../..");
+
+console.log(`Total OMS orders: ${orders.length}`);
+console.log(`Total Analytics events: ${events.length}`);
+console.log(`Total findings: ${findings.length}`);
+console.log(`Unique affected case IDs: ${affectedCaseIds.size}`);
+console.log(`Output file: ${path.relative(projectRoot, outputFile)}`);
