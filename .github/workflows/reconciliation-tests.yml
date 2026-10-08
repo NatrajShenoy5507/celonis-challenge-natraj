@@ -1,0 +1,90 @@
+name: Reconciliation tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-and-report:
+    name: Reconcile OMS and Analytics data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate deterministic findings
+        run: npm run reconcile
+
+      - name: Generate reviewer defect report
+        run: npm run report
+
+      - name: Validate generated findings and report integrity
+        shell: node {0}
+        run: |
+          const fs = require("node:fs");
+
+          const findingsPath = "reconciliation/output/defects.json";
+          const reportPath = "DEFECT_REPORT.md";
+          if (!fs.existsSync(findingsPath)) {
+            throw new Error(`Expected output was not generated: ${findingsPath}`);
+          }
+          if (!fs.existsSync(reportPath)) {
+            throw new Error(`Expected output was not generated: ${reportPath}`);
+          }
+
+          const findings = JSON.parse(fs.readFileSync(findingsPath, "utf8"));
+          const report = fs.readFileSync(reportPath, "utf8");
+          if (!Array.isArray(findings)) {
+            throw new Error("defects.json must contain an array.");
+          }
+
+          const ids = new Set();
+          const groups = new Set();
+          findings.forEach((finding, index) => {
+            const expectedId = `DATA-${String(index + 1).padStart(3, "0")}`;
+            if (finding.id !== expectedId || ids.has(finding.id)) {
+              throw new Error(`Finding ID integrity failed at index ${index}: ${finding.id}`);
+            }
+            for (const field of ["caseId", "rule", "category", "severity", "description"]) {
+              if (typeof finding[field] !== "string" || finding[field].length === 0) {
+                throw new Error(`Finding ${finding.id} has an invalid ${field}.`);
+              }
+            }
+            ids.add(finding.id);
+            groups.add(`${finding.caseId}\u0000${finding.rule}`);
+            if (!report.includes(finding.id)) {
+              throw new Error(`Generated report does not include raw finding ${finding.id}.`);
+            }
+          });
+
+          const summary = `**Summary:** ${findings.length} raw findings grouped into ${groups.size} reviewer-facing defects.`;
+          if (!report.includes(summary)) {
+            throw new Error("Report summary does not match findings grouped by CaseId and rule.");
+          }
+          console.log(`Validated ${findings.length} deterministic finding(s) and ${groups.size} report group(s).`);
+          console.log("Existing findings are expected seeded data and do not fail this workflow.");
+
+      - name: Upload deterministic findings and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconciliation-defects-and-report
+          path: |
+            reconciliation/output/defects.json
+            DEFECT_REPORT.md
+          if-no-files-found: ignore
+          retention-days: 7

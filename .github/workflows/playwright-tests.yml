@@ -1,0 +1,141 @@
+name: Playwright tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    name: TypeScript check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+
+      - name: Install Playwright project dependencies
+        run: npm ci --prefix playwright
+
+      - name: Typecheck
+        run: npm run typecheck --prefix playwright
+
+  api-tests:
+    name: Unauthenticated API tests
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+      TEST_ENV: demo
+      BASE_URL: https://shop.qaautomationlabs.com
+      API_BASE_URL: https://api.qaautomationlabs.com/v1
+      TEST_USER_EMAIL: ci-api-unused@example.invalid
+      TEST_USER_PASSWORD: ci-api-unused-placeholder
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+
+      - name: Install Playwright project dependencies
+        run: npm ci --prefix playwright
+
+      - name: Run read-only API tests
+        run: npm run test:api --prefix playwright
+
+      - name: Upload API test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-api-report
+          path: playwright/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ui-eligibility:
+    name: Check authenticated UI test eligibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      eligible: ${{ steps.credentials.outputs.eligible || steps.pull_request.outputs.eligible }}
+    steps:
+      - name: Skip secret-dependent UI tests on pull requests
+        if: github.event_name == 'pull_request'
+        run: echo "Authenticated UI tests are skipped on all pull requests so credentials are never exposed to untrusted pull-request code."
+
+      - name: Check whether UI credentials are configured
+        id: credentials
+        if: github.event_name != 'pull_request'
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        shell: bash
+        run: |
+          if [[ -n "$TEST_USER_EMAIL" && -n "$TEST_USER_PASSWORD" ]]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Authenticated UI tests skipped: configure TEST_USER_EMAIL and TEST_USER_PASSWORD repository secrets."
+          fi
+
+      - name: Mark pull request UI tests as skipped
+        id: pull_request
+        if: github.event_name == 'pull_request'
+        run: echo "eligible=false" >> "$GITHUB_OUTPUT"
+
+  authenticated-ui-tests:
+    name: Authenticated UI tests
+    needs: ui-eligibility
+    if: needs.ui-eligibility.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+      TEST_ENV: demo
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+
+      - name: Install Playwright project dependencies
+        run: npm ci --prefix playwright
+
+      - name: Install Chromium and runner dependencies
+        run: npx --prefix playwright playwright install --with-deps chromium
+
+      - name: Run authenticated UI tests with fresh CI storage state
+        run: npm run test:ui --prefix playwright
+
+      - name: Upload UI report and screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-authenticated-ui-report
+          path: |
+            playwright/playwright-report/
+            !playwright/playwright-report/**/*.zip
+            playwright/test-results/**/*.png
+            !playwright/auth/.auth/**
+          if-no-files-found: ignore
+          retention-days: 7

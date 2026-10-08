@@ -181,6 +181,18 @@ Then fill in only the required local values: `GEMINI_API_KEY` in root `.env` for
 
 For Part C, run reconciliation before report generation. For Part E, ensure reconciliation has generated findings first. For Part D, start the mock in one terminal and run k6 commands from `performance/` in another. Exact component setup and run instructions are in [`playwright/README.md`](./playwright/README.md) and [`performance/README.md`](./performance/README.md).
 
+## GitHub Actions
+
+Three independent workflows are available under the **Actions** tab:
+
+| Workflow | Triggers | What it runs and stores |
+|---|---|---|
+| **Playwright tests** | Push, pull request, or manual dispatch | TypeScript checks and read-only API tests run without secrets. Authenticated UI tests run only on pushes and manual dispatches when both `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` repository secrets are configured; they are explicitly skipped on all pull requests and when either secret is missing. HTML reports and screenshot failure evidence are uploaded as run artifacts; authentication state and trace archives are not uploaded. |
+| **Reconciliation tests** | Push, pull request, or manual dispatch | Runs `npm run reconcile` and `npm run report`, then validates the generated finding IDs and report consistency. The seeded findings are expected. `defects.json` and `DEFECT_REPORT.md` are uploaded as run artifacts. |
+| **AI quality analysis** | Manual dispatch only | Regenerates deterministic findings. Optionally enable **Run live Gemini analysis**; this requires the `GEMINI_API_KEY` repository secret. Validated AI output is not uploaded because it contains case-level evidence. |
+
+To configure secrets, add the Playwright credentials and, if using live AI analysis, `GEMINI_API_KEY` in the repository's **Settings → Secrets and variables → Actions**. To run a workflow manually, open **Actions**, select its workflow, choose **Run workflow**, and confirm the branch; for AI analysis, leave the live option disabled unless the Gemini secret is configured. Download available reports from the run's **Artifacts** section. Workflows use read-only repository permissions, and a successful skipped UI job does not mean authenticated UI tests ran.
+
 ## Results and Reports
 
 | Artifact | Location / availability |
@@ -210,4 +222,4 @@ Do not treat absent or ignored result artifacts as execution evidence; rerun the
 
 - Add coverage from risk-prioritized scenarios and authorized integration contracts when available.
 - For an authorized performance environment, add measured ingestion lag, server/resource telemetry, and batch reconciliation.
-- Add CI execution and report publishing where repository hosting and credentials permit.
+- Extend CI report publishing and authorized integration coverage as repository hosting and credentials permit.
