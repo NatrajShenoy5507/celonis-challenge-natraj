@@ -8,3 +8,5 @@ playwright/playwright-report/
 playwright/allure-results/
 playwright/allure-report/
 .playwright-mcp/
+performance/.env
+performance/results/
