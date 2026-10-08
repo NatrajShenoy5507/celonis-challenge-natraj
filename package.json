@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "reconcile": "node reconciliation/src/reconcile.js",
-    "report": "node reconciliation/src/generate-defect-report.js"
+    "report": "node reconciliation/src/generate-defect-report.js",
+    "ai:explain": "node ai/anomaly-explainer.js"
   },
   "dependencies": {
     "csv-parse": "^7.0.3"
