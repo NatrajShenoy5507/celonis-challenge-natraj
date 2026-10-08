@@ -1,0 +1,11 @@
+{
+  "name": "celonis-ai-quality-challenge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "reconcile": "node reconciliation/src/reconcile.js"
+  },
+  "dependencies": {
+    "csv-parse": "^7.0.3"
+  }
+}
