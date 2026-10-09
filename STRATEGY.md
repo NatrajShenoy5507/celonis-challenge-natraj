@@ -22,13 +22,11 @@ Reconcile OMS and Analytics for completeness, referential integrity, amounts, cu
 
 - **P0:** Failures that can silently corrupt business data, financial reporting, lifecycle representation, or core synchronization. Examples include missing orders/events, amount or currency mismatches, orphan cases, invalid lifecycle or timestamps, duplicate events, and failed core sync.
 - **P1:** Important validation, security, and negative-path scenarios outside the primary source-to-target business flow, such as malformed requests, authentication/authorization, UI security, and input validation.
-- **Unassigned:** A workbook scenario with no priority remains unassigned below; no priority was inferred or changed.
-
-Priorities in the scenario table are preserved from the workbook.
+All scenarios have an assigned P0 or P1 priority based on these risk definitions. OMS-01 through OMS-20 originate from the workbook; OMS-21 through OMS-23 are explicit additions to this Markdown strategy.
 
 ## 4. Test Techniques
 
-The scenarios use risk-based prioritization, positive and negative testing, state-transition testing, source-to-target reconciliation, referential-integrity checks, temporal validation, contract/schema validation, security/authorization testing, idempotency/reliability testing, and regression/data-integrity checks. Boundary-value checks may be applied to input fields when their valid limits are defined by the business contract; the workbook does not specify numeric boundary values.
+The scenarios use risk-based prioritization, positive and negative testing, state-transition testing, source-to-target reconciliation, referential-integrity checks, temporal validation, contract/schema validation, security/authorization testing, idempotency/reliability testing, regression/data-integrity checks, and boundary-value analysis of the specified non-negative OrderAmount rule.
 
 ## 5. Test Oracle
 
@@ -51,7 +49,7 @@ For example, a Delivered order passes the lifecycle check when Analytics contain
 
 ## 7. Prioritized Test Scenarios
 
-The scenarios below are transcribed from `data/Test cases.xlsx`. Wording and layer labels are normalized for readability; business intent and assigned priorities are retained.
+OMS-01 through OMS-20 are transcribed from `data/Test cases.xlsx`; wording and layer labels are normalized for readability. OMS-21 through OMS-23 are reviewer-requested additions to this strategy only; the workbook is unchanged.
 
 | ID | Layer | Scenario | Priority | Technique | Oracle / Expected Result |
 |---|---|---|---|---|---|
@@ -74,7 +72,10 @@ The scenarios below are transcribed from `data/Test cases.xlsx`. Wording and lay
 | OMS-17 | API / Integration | Verify a valid sync/ingest request is accepted. | P0 | Positive / Contract | The request is accepted according to the actual API contract and produces the expected downstream Analytics event. |
 | OMS-18 | API / Integration | Verify a request missing a required field is rejected. | P1 | Negative / Schema validation | The invalid payload receives a contract-defined validation error and is not propagated. |
 | OMS-19 | API / Integration | Verify transaction consistency when synchronization fails. | P1 | Failure / Consistency | A failed integration does not leave malformed or partially written target data. |
-| OMS-20 | API / Integration | Verify an unauthorized user cannot modify an already-synchronized Analytics event. | Not set | Authorization / Data integrity | The unauthorized modification is rejected and the original Analytics event remains unchanged. |
+| OMS-20 | API / Integration | Verify an unauthorized user cannot modify an already-synchronized Analytics event. | P1 | Authorization / Data integrity | The unauthorized modification is rejected and the original Analytics event remains unchanged. |
+| OMS-21 | Data / API / Integration | Verify the boundary conditions for OMS `OrderAmount`, including zero and negative values. | P1 | Boundary Value Analysis / Negative Testing / Data Validation | An `OrderAmount` of zero satisfies the specified non-negative amount rule. A negative `OrderAmount` violates the rule and is detected and reported as a source-data validation finding; no API rejection response is assumed unless explicitly defined by its contract. |
+| OMS-22 | Data | Verify Analytics lifecycle event timestamps are not in the future. | P0 | Temporal Validation / Boundary Testing | Every Analytics event timestamp is valid UTC and is no later than the defined validation reference time. Any future-dated Analytics event is reported as a temporal data-quality defect. This checks against the reference time, not other event timestamps. |
+| OMS-23 | Data | Verify every Analytics `CaseId` corresponds to an existing OMS `OrderId`. | P0 | Referential Integrity / Negative Data Validation | Every distinct Analytics `CaseId` matches an existing OMS `OrderId`; any unmatched `CaseId` is reported as an orphan record. Unlike OMS-01, this checks Analytics-to-OMS integrity. |
 
 ## 8. If I Had Only One Hour
 
@@ -83,9 +84,9 @@ I would first check:
 1. Missing non-Cart orders or events.
 2. Analytics `CaseId` values with no matching OMS `OrderId`.
 3. Amount and currency mismatches.
-4. Delivered lifecycle completeness and order.
+4. Delivered lifecycle completeness and chronological order.
 5. Duplicate or missing events.
-6. Invalid, out-of-order, or future timestamps.
+6. Invalid or out-of-order timestamps, and timestamps later than the validation reference time.
 
 These checks come first because synchronization can appear technically successful while silently producing inaccurate business reporting or process-mining data.
 

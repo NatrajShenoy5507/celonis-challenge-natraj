@@ -198,3 +198,9 @@
 
 - Updated the centralized Playwright environment configuration to load `playwright/.env` explicitly, independent of the process working directory. Shell and CI environment variables continue to take precedence; removed the redundant default dotenv import from the Playwright config.
 - **Verification:** `npm run typecheck --prefix playwright` passed, `npm run test:list --prefix playwright` discovered all six tests, and `git diff --check` passed. Authenticated browser tests were not run.
+
+## Part A strategy finalization
+
+- Updated OMS-20 to priority P1 and removed outdated wording about unassigned priorities. Added reviewer-requested OMS-21 OrderAmount boundary validation (zero and negative values), OMS-22 future Analytics timestamp validation, and OMS-23 reverse Analytics-to-OMS referential integrity. Preserved OMS-01 through OMS-19 and kept the workbook unchanged.
+- Refined the one-hour focus to distinguish lifecycle ordering from future-time validation and documented that OMS-01 and OMS-23 check opposite referential-integrity directions.
+- **Verification:** Confirmed exactly 23 unique sequential scenarios (OMS-01–OMS-23), P0/P1 priorities and nonempty oracles for every row; OMS-01–OMS-19 match their prior text. Verified forward/reverse completeness, zero/negative amount boundaries, chronological ordering and future timestamp coverage, all required strategy sections, and `git diff --check`. No duplicate or inconsistent scenarios were found. Only `STRATEGY.md` was changed for this update; `data/Test cases.xlsx` was not modified.
