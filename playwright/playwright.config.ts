@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 import { environment } from "./config/environment";
 import path from "node:path";

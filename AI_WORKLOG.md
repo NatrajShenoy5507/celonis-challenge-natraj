@@ -193,3 +193,8 @@
 - Added isolated Node built-in tests that execute the real explainer in a temporary directory with mocked Gemini responses and block all non-Gemini network requests. The tests cover a corrected retry after OMS-blaming text, per-case schema restrictions and exact IDs, rejection of unsupported business behavior, final invalid-mechanism rejection with no output persisted after exactly two attempts, and empty mechanisms for a `SOURCE_DATA`-only case.
 - Updated the AI-quality workflow so deterministic reconciliation and offline mocked-response tests run on pushes, pull requests, and manual dispatches without secrets. Live Gemini analysis remains an explicit manual opt-in and runs only after offline validation. Updated the root and Part E READMEs with workflow behavior and the offline test command.
 - **Verification:** `node --test ai/test/anomaly-explainer.test.js` passed all 4 tests. `node --check` passed for the explainer and both test files. Parsed the workflow YAML and verified push/PR/manual offline triggers, explicit manual-only live gating, least-privilege `contents: read`, and no Gemini secret in the offline job. `git diff --check` passed. No live Gemini request was made during this fix.
+
+## Playwright dotenv path fix
+
+- Updated the centralized Playwright environment configuration to load `playwright/.env` explicitly, independent of the process working directory. Shell and CI environment variables continue to take precedence; removed the redundant default dotenv import from the Playwright config.
+- **Verification:** `npm run typecheck --prefix playwright` passed, `npm run test:list --prefix playwright` discovered all six tests, and `git diff --check` passed. Authenticated browser tests were not run.

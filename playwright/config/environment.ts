@@ -1,8 +1,11 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
 import type {
   EnvironmentConfig,
   EnvironmentName,
 } from "../core/types/environment.types";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const environmentNames: EnvironmentName[] = ["demo", "qa", "staging"];
 const configuredName = process.env.TEST_ENV || "demo";
