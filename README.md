@@ -37,7 +37,7 @@ The demo shop and local mock are not OMS or Celonis systems. The Playwright test
 
 ## Part A — Test Strategy
 
-[STRATEGY.md](./STRATEGY.md) contains **20 scenarios imported from the workbook**, with the workbook left unchanged. It prioritizes silent business-data corruption as P0 and includes UI, API/integration, and data layers; lifecycle branches; measurable oracles; and a one-hour risk-based focus. High-risk data checks include completeness, referential integrity, amount/currency correctness, timestamps, duplicates, and lifecycle conformance.
+[STRATEGY.md](./STRATEGY.md) contains **23 scenarios**: 20 originating from the workbook and three reviewer-requested additions, with the workbook left unchanged. It prioritizes silent business-data corruption as P0 and includes UI, API/integration, and data layers; lifecycle branches; measurable oracles; and a one-hour risk-based focus. High-risk data checks include completeness, referential integrity, amount/currency correctness, timestamps, duplicates, and lifecycle conformance.
 
 ## Part B — Playwright UI/API Automation
 
